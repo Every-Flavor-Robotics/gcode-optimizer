@@ -39,6 +39,8 @@ class GeneticAlgorithm:
 
         self.compute_best_generation()
 
+        print("Done initializing")
+
     def run_generation(self):
         self.current_generation += 1
 
@@ -361,7 +363,7 @@ class GeneticAlgorithm:
         current_best_index, current_best_value = self.get_current_best()
 
         # Found a better solution
-        if self.best_value is None or self.best_value > current_best_value:
+        if self.best_value is None or current_best_value < self.best_value:
 
             # Update the stored best solution
             self.current_best_index = current_best_index
@@ -433,7 +435,7 @@ class GeneticAlgorithm:
         rand = np.random.rand()
 
         for i in range(len(self.roulette)):
-            if rand <= self.roulette[i]:
+            if self.roulette[i] > rand:
                 return i
 
     def random_individual(self, n: int) -> np.ndarray:
@@ -453,6 +455,55 @@ class GeneticAlgorithm:
 
         return sum
 
+    def get_shortest_distance(
+        self, group_1_points: np.ndarray, group_2_points: np.ndarray
+    ):
+        """Get the shortest distance between two groups of points
+
+        Args:
+            group_1_points (ndarray): The points in the first group
+            group_2_points (ndarray): The points in the second group
+
+        Returns:
+            float: The shortest distance between the two groups of points
+            int: The index of the point in the first group
+            int: The index of the point in the second group
+        """
+
+        shortest_distance = np.inf
+        group_1_index = 0
+        group_2_index = 0
+
+        # print("Distances between: ")
+        # print(group_1_points)
+        # print(group_2_points)
+        # breakpoint()
+
+        for i, point_1 in enumerate(group_1_points):
+            for j, point_2 in enumerate(group_2_points):
+                distance = np.linalg.norm(point_1 - point_2)
+                # print(f"point_1: {point_1}, point_2: {point_2}, distance: {distance}")
+                if distance > shortest_distance:
+                    continue
+
+                # Keep the point with the group 2 index, but
+                # Greatest group 1 index
+                if distance == shortest_distance and j > group_2_index:
+                    continue
+
+                shortest_distance = distance
+                group_1_index = i
+                group_2_index = j
+
+        # print("SHotest distance", shortest_distance)
+        # breakpoint()
+        if shortest_distance == np.inf:
+            import ipdb
+
+            ipdb.set_trace()
+
+        return shortest_distance, group_1_index, group_2_index
+
     def count_distances(self):
 
         length = len(self.points)
@@ -463,6 +514,10 @@ class GeneticAlgorithm:
 
         for i in range(length):
             for j in range(length):
-                self.distances[i][j] = np.linalg.norm(
-                    self.points[i]["start_coord"] - self.points[j]["end_coord"]
+                # print("Calculating distance between points", i, "and", j)
+                # print(self.points[i])
+                # print(self.points[j])
+                self.distances[i][j], _, _ = self.get_shortest_distance(
+                    self.points[i]["intermediate_points"],
+                    self.points[j]["intermediate_points"],
                 )
