@@ -279,40 +279,6 @@ class GeneticAlgorithm:
                 # Decrement counter so that we can mutate the same individual again
                 i -= 1
 
-    # def preciseMutate(self, orseq):
-    #     seq = orseq.copy()
-    #     if random.random() > 0.5:
-    #         seq.reverse()
-    #     bestv = self.evaluate(seq)
-    #     for i in range(len(seq) >> 1):
-    #         for j in range(i + 2, len(seq) - 1):
-    #             new_seq = self.swap_seq(seq, i, i + 1, j, j + 1)
-    #             v = self.evaluate(new_seq)
-    #             if v < bestv:
-    #                 bestv = v
-    #                 seq = new_seq
-    #     return seq
-
-    # def preciseMutate1(self, orseq):
-    #     seq = orseq.copy()
-    #     bestv = self.evaluate(seq)
-    #     for i in range(len(seq) - 1):
-    #         new_seq = seq.copy()
-    #         new_seq.swap(i, i + 1)
-    #         v = self.evaluate(new_seq)
-    #         if v < bestv:
-    #             bestv = v
-    #             seq = new_seq
-    #     return seq
-
-    # def swap_seq(self, seq, p0, p1, q0, q1):
-    #     seq1 = seq[:p0]
-    #     seq2 = seq[p1 + 1:q1]
-    #     seq2.append(seq[p0])
-    #     seq2.append(seq[p1])
-    #     seq3 = seq[q1:]
-    #     return seq1 + seq2 + seq3
-
     def do_mutate(self, individual: np.ndarray) -> np.ndarray:
         """
         Mutates an individual by reversing a random subset of elements in the array.
@@ -518,9 +484,6 @@ class GeneticAlgorithm:
                 + 40 * backtrack_cost / self.num_total_points
             )
 
-        # # Then, calculate the distance between the rest of the points
-        # sum += np.sum(self.distances[individual[:-1], individual[1:]])
-
         return sum
 
     def get_shortest_distance(
@@ -563,7 +526,6 @@ class GeneticAlgorithm:
                 group_1_index = i
                 group_2_index = j
 
-        # print("SHotest distance", shortest_distance)
         # breakpoint()
         if shortest_distance == np.inf:
             import ipdb
@@ -617,13 +579,6 @@ class GeneticAlgorithm:
         for i in range(length):
             self.num_total_points += self.points[i]["intermediate_points"].shape[0]
             for j in range(length):
-                # print("Calculating distance between points", i, "and", j)
-                # print(self.points[i])
-                # print(self.points[j])
-                # TODO: Improved shortest distance
-                # if i == j:
-                #     self.distances[i][j] = 2
-                #     continue
                 self.distances[i][j], point_i_index, point_j_index = (
                     self.get_shortest_distance(
                         self.points[i]["intermediate_points"],
@@ -631,9 +586,3 @@ class GeneticAlgorithm:
                     )
                 )
                 self.nearest_points[i][j] = [point_i_index, point_j_index]
-
-                # self.distances[i][j] = int(
-                #     np.linalg.norm(
-                #         self.points[i]["start_coord"] - self.points[j]["start_coord"]
-                #     )
-                # )
