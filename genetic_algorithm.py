@@ -8,10 +8,10 @@ class GeneticAlgorithm:
     def __init__(
         self,
     ):  # More parameters as needed
-        self.population_size = 30
+        self.population_size = 50
         self.elite_rate = 0.3
         self.crossover_probability = 0.9
-        self.mutation_probability = 0.05
+        self.mutation_probability = 0.07
         self.unchanged_gens = 0
         self.mutation_count = 0
         self.do_precise_mutate = True
@@ -24,7 +24,9 @@ class GeneticAlgorithm:
         self.fitness_values = []
         self.roulette = []
         self.distances = []
+        self.nearest_points = []
         self.points = []
+        self.num_total_points = 0
 
     def init(self, points: list[dict]):
 
@@ -44,9 +46,9 @@ class GeneticAlgorithm:
     def run_generation(self):
         self.current_generation += 1
 
-        self.selection_step()  # You'll need to implement this method
-        self.crossover_step()  # You'll need to implement this method
-        self.mutation_step()  # You'll need to implement this method
+        self.selection_step()
+        self.crossover_step()
+        self.mutation_step()
 
         self.compute_best_generation()
 
@@ -67,10 +69,17 @@ class GeneticAlgorithm:
         # Construct list of parents
         parents = []
         # Elitism - Add elites directly
+
+        # Add best from this generation
         parents.append(self.population[self.current_best_index])
+        # parents.append(self.do_mutate(self.population[self.current_best_index].copy()))
+        # parents.append(
+        #     self.push_mutate(self.population[self.current_best_index].copy())
+        # )
+
+        # Add mutated versions of the overall best
         parents.append(self.do_mutate(self.best.copy()))
         parents.append(self.push_mutate(self.best.copy()))
-        # TODO: Why do we add the best solution twice
         parents.append(self.best.copy())
 
         # Roulette wheel selection
@@ -79,7 +88,10 @@ class GeneticAlgorithm:
         # Start from index 4 because we already added the elites
         # This removes the 4 oldest individuals
         for _ in range(4, self.population_size):
-            parents.append(self.population[self.sample_from_roulette()])
+            if np.random.rand() < 0.95:
+                parents.append(self.population[self.sample_from_roulette()])
+            else:
+                parents.append(self.random_individual(len(self.points)))
 
         self.population = parents
 
@@ -121,20 +133,31 @@ class GeneticAlgorithm:
         Returns:
             None
         """
-        child1 = self.compute_child_forward(x, y)
-        child2 = self.compute_child_backwards(x, y)
+
+        # Create a dictionary to do fast lookup for indices
+        # of the points in the individual
+        x_lookup = {point: i for i, point in enumerate(self.population[x])}
+        y_lookup = {point: i for i, point in enumerate(self.population[y])}
+        child1 = self.compute_child_forward(x, y, x_lookup, y_lookup)
+        child2 = self.compute_child_backwards(x, y, x_lookup, y_lookup)
 
         # Replace the parents with the children
         self.population[x] = child1
         self.population[y] = child2
 
-    def compute_child_forward(self, x: int, y: int) -> np.ndarray:
-        return self._compute_child_helper(self._next, x, y)
+    def compute_child_forward(
+        self, x: int, y: int, x_lookup: dict, y_lookup: dict
+    ) -> np.ndarray:
+        return self._compute_child_helper(self._next, x, y, x_lookup, y_lookup)
 
-    def compute_child_backwards(self, x: int, y: int) -> np.ndarray:
-        return self._compute_child_helper(self._prev, x, y)
+    def compute_child_backwards(
+        self, x: int, y: int, x_lookup: dict, y_lookup: dict
+    ) -> np.ndarray:
+        return self._compute_child_helper(self._prev, x, y, x_lookup, y_lookup)
 
-    def _compute_child_helper(self, iterate_fn: any, x: int, y: int) -> np.ndarray:
+    def _compute_child_helper(
+        self, iterate_fn: any, x: int, y: int, x_lookup: dict, y_lookup: dict
+    ) -> np.ndarray:
         """
         Computes the child solution by performing crossover between two parent solutions.
 
@@ -142,6 +165,8 @@ class GeneticAlgorithm:
         - iterate_fn (function): A function that iterates over the parent solution and returns the next point to consider.
         - x (int): Index of the first parent solution in the population.
         - y (int): Index of the second parent solution in the population.
+        - x_lookup (dict): A dictionary that maps points to their indices in the first parent solution.
+        - y_lookup (dict): A dictionary that maps points to their indices in the second parent solution.
 
         Returns:
         - solution (np.ndarray): The child solution obtained after crossover.
@@ -169,16 +194,18 @@ class GeneticAlgorithm:
         solution[0] = c
         # Loop until all points are added to the solution
         i = 1
-        while len(px) > 1:
-            px_index = np.where(px == c)[0][0]
-            py_index = np.where(py == c)[0][0]
+        while i < len(px):
+            px_index = x_lookup[c]
+            py_index = y_lookup[c]
 
             dx = iterate_fn(px_index, px)
             dy = iterate_fn(py_index, py)
 
             # Remove the selected points from the parents
-            px = np.delete(px, px_index)
-            py = np.delete(py, py_index)
+            # Make points negative 1 so that we can check if they are already in the solution
+            # Avoid delete
+            px[px_index] = -1
+            py[py_index] = -1
 
             # Choose the next point to add to the solution
             # Select the point that is closer to the current point\
@@ -200,9 +227,12 @@ class GeneticAlgorithm:
             any: The next element in the array
         """
         if index >= len(array) - 1:
-            return array[0]
-        else:
-            return array[index + 1]
+            index = -1
+
+        # If the next element is -1, return the next element
+        if array[index + 1] == -1:
+            return self._next(index + 1, array)
+        return array[index + 1]
 
     def _prev(self, index: int, array: np.ndarray) -> any:
         """Helper function to get the previous element in the array
@@ -215,9 +245,10 @@ class GeneticAlgorithm:
             any: The previous element in the array
         """
         if index == 0:
-            return array[len(array) - 1]
-        else:
-            return array[index - 1]
+            index = len(array)
+        if array[index - 1] == -1:
+            return self._prev(index - 1, array)
+        return array[index - 1]
 
     def mutation_step(self):
         """
@@ -357,6 +388,7 @@ class GeneticAlgorithm:
         Returns:
         - None
         """
+
         # Evaluate each individual in the population
         self.values = [self.evaluate(individual) for individual in self.population]
 
@@ -369,6 +401,8 @@ class GeneticAlgorithm:
             self.current_best_index = current_best_index
             self.best = self.population[current_best_index].copy()
             self.best_value = current_best_value
+
+            print("Saving new best")
 
             # Reset unchanged generations
             self.unchanged_gens = 0
@@ -439,19 +473,53 @@ class GeneticAlgorithm:
                 return i
 
     def random_individual(self, n: int) -> np.ndarray:
-        a = np.arange(n)
-        np.random.shuffle(a)
-        return a
+        a = np.arange(n, dtype=int)
+
+        return np.random.shuffle(a)
 
     def evaluate(self, individual: np.ndarray) -> float:
+
         # Calculate the distance between the points in the order of the individual
         # First, calculate the distance between the first point and 0
         sum = np.linalg.norm(
             self.points[individual[0]]["start_coord"] - np.array([0, 0])
         )
 
-        # Then, calculate the distance between the rest of the points
-        sum += np.sum(self.distances[individual[:-1], individual[1:]])
+        for i in range(0, len(individual) - 1):
+            # Get distances for all previous points to the current point
+            distances = self.distances[individual[: i + 1], individual[i + 1]]
+
+            # Get the index of the closest point
+            closest_index = np.argmin(distances)
+
+            # Get the index of the nearest point to the next group
+            nearest_point_to_next, _ = self.nearest_points[individual[closest_index]][
+                individual[i + 1]
+            ]
+
+            # breakpoint()
+
+            # Sum backtrack costs, the number of individual steps
+            # Between the closest point and the next point
+            backtrack_cost = (
+                self.points[individual[closest_index]]["intermediate_points"].shape[0]
+                - nearest_point_to_next
+            )
+            for j in range(closest_index + 1, i + 1):
+                backtrack_cost += self.points[individual[j]][
+                    "intermediate_points"
+                ].shape[0]
+
+            # backtrack cost is distance between i and closest_index
+            # backtrack_cost = np.abs(i - closest_index)
+            # Get the minimum distance
+            sum += (
+                100 * distances[closest_index] / len(individual)
+                + 40 * backtrack_cost / self.num_total_points
+            )
+
+        # # Then, calculate the distance between the rest of the points
+        # sum += np.sum(self.distances[individual[:-1], individual[1:]])
 
         return sum
 
@@ -504,6 +572,39 @@ class GeneticAlgorithm:
 
         return shortest_distance, group_1_index, group_2_index
 
+    def get_shortest_distance_with_backtrack(
+        self, individual: np.ndarray, start_idx: int, end_idx: int
+    ):
+        """Get the shortest distance between two groups of points with backtracking
+
+        Args:
+            individual (ndarray): The individual containing the points
+            start_idx (int): The index of the starting point
+            end_idx (int): The index of the ending point
+
+        Returns:
+            int: The index of the nearest group to the next group
+            int: The index of the point in the nearest group closest to the next group
+            int: The index of the point in the next group closest to the nearest group
+        """
+
+        # First figure out which previous group is the closest to the next group
+        distances = self.distances[individual[: start_idx + 1], individual[end_idx]]
+
+        # Get the minimum distance
+        nearest_idx = np.argmin(distances)
+
+        # breakpoint()
+        group_1 = self.points[individual[nearest_idx]]["intermediate_points"]
+        group_2 = self.points[individual[end_idx]]["intermediate_points"]
+
+        # Get the distance between the nearest point in the previous group and the next group
+        distance, group_1_index, group_2_index = self.get_shortest_distance(
+            group_1, group_2
+        )
+
+        return nearest_idx, group_1_index, group_2_index
+
     def count_distances(self):
 
         length = len(self.points)
@@ -511,13 +612,28 @@ class GeneticAlgorithm:
         # Create a 2D array to store the distances between points
         # We can use this so that we don't have to calculate the distance between points multiple times
         self.distances = np.zeros((length, length))
+        self.nearest_points = np.zeros((length, length, 2), dtype=int)
 
         for i in range(length):
+            self.num_total_points += self.points[i]["intermediate_points"].shape[0]
             for j in range(length):
                 # print("Calculating distance between points", i, "and", j)
                 # print(self.points[i])
                 # print(self.points[j])
-                self.distances[i][j], _, _ = self.get_shortest_distance(
-                    self.points[i]["intermediate_points"],
-                    self.points[j]["intermediate_points"],
+                # TODO: Improved shortest distance
+                # if i == j:
+                #     self.distances[i][j] = 2
+                #     continue
+                self.distances[i][j], point_i_index, point_j_index = (
+                    self.get_shortest_distance(
+                        self.points[i]["intermediate_points"],
+                        self.points[j]["intermediate_points"],
+                    )
                 )
+                self.nearest_points[i][j] = [point_i_index, point_j_index]
+
+                # self.distances[i][j] = int(
+                #     np.linalg.norm(
+                #         self.points[i]["start_coord"] - self.points[j]["start_coord"]
+                #     )
+                # )
