@@ -63,11 +63,9 @@ def decode_solution(data):
     return output
 
 
-def optimze_gcode(input_file: str, output_file: str):
+def optimize_gcode(input_file: str, output_file: str):
 
-    PATH_TO_RUST_OPTIMIZER = Path(
-        "~/efr/svg2gcode/target/release/gcode-optimizer"
-    ).expanduser()
+    PATH_TO_RUST_OPTIMIZER = "gcode-optimizer"
 
     # Get just the directory of the output file
     output_dir = Path(output_file).parent
@@ -224,7 +222,7 @@ def optimze_gcode(input_file: str, output_file: str):
     help="Path to output gcode file",
 )
 def main(input_file: str, output_file: str):
-    optimze_gcode(input_file, output_file)
+    optimize_gcode(input_file, output_file)
 
 
 if __name__ == "__main__":
