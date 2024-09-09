@@ -77,8 +77,9 @@ def optimize_gcode(input_file: str, output_file: str):
     proc = subprocess.Popen(command, shell=True)
     proc.wait()
 
-    solution_file = Path(output_file).parent / "solution.bin"
-    backtrack_file = Path(output_file).parent / "backtrack.bin"
+    input_name = Path(input_file).stem
+    solution_file = output_dir.parent / f"{input_name}_solution.bin"
+    backtrack_file = output_dir.parent / f"{input_name}_backtrack.bin"
 
     # Open solution.bin
     with open(solution_file, "rb") as file:
@@ -210,6 +211,10 @@ def optimize_gcode(input_file: str, output_file: str):
                     buffer.append(f"{command} X{point[0]} Y{point[1]} F12000\n")
                     command = "G1"
             file.writelines(buffer)
+
+        # Delete the solution and backtrack files
+        solution_file.unlink()
+        backtrack_file.unlink()
 
 
 @click.command()
