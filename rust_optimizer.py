@@ -212,11 +212,6 @@ def optimize_gcode(input_file: str, output_file: str):
                     command = "G1"
             file.writelines(buffer)
 
-        # Delete the solution and backtrack files
-        solution_file.unlink()
-        backtrack_file.unlink()
-
-
 @click.command()
 @click.option(
     "--input_file", prompt="Path to input binary file", help="Path to input binary file"
