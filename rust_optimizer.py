@@ -78,8 +78,8 @@ def optimize_gcode(input_file: str, output_file: str):
     proc.wait()
 
     input_name = Path(input_file).stem
-    solution_file = output_dir.parent / f"{input_name}_solution.bin"
-    backtrack_file = output_dir.parent / f"{input_name}_backtrack.bin"
+    solution_file = output_dir / f"{input_name}_solution.bin"
+    backtrack_file = output_dir / f"{input_name}_backtrack.bin"
 
     # Open solution.bin
     with open(solution_file, "rb") as file:
