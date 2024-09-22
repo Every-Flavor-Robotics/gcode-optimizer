@@ -73,6 +73,17 @@ def optimize_gcode(input_file: str, output_file: str):
     # Run the rust optimizer
     command = f"{PATH_TO_RUST_OPTIMIZER} --input {input_file} --output {output_dir}"
 
+    # Get the feedrate from the input file
+    # Right now, this just reads the first line with an F in it
+    # Okay for etch a sketch code, but not for general gcode
+    # Set a default
+    feedrate = 12000
+    with open(input_file, "r") as file:
+        for line in file:
+            if "F" in line:
+                feedrate = int(line.split("F")[1].strip())
+                break
+
     # Run the command
     proc = subprocess.Popen(command, shell=True)
     proc.wait()
@@ -208,7 +219,7 @@ def optimize_gcode(input_file: str, output_file: str):
             for sub_block in gcode_output_with_backtrack:
                 command = "G0"
                 for point in sub_block["final_path"]:
-                    buffer.append(f"{command} X{point[0]} Y{point[1]} F12000\n")
+                    buffer.append(f"{command} X{point[0]} Y{point[1]} F{feedrate}\n")
                     command = "G1"
             file.writelines(buffer)
 
