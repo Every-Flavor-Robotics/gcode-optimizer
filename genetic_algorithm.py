@@ -441,7 +441,10 @@ class GeneticAlgorithm:
     def random_individual(self, n: int) -> np.ndarray:
         a = np.arange(n, dtype=int)
 
-        return np.random.shuffle(a)
+        # Shuffle
+        np.random.shuffle(a)
+
+        return a
 
     def evaluate(self, individual: np.ndarray) -> float:
 
@@ -450,6 +453,8 @@ class GeneticAlgorithm:
         sum = np.linalg.norm(
             self.points[individual[0]]["start_coord"] - np.array([0, 0])
         )
+
+        # breakpoint()
 
         for i in range(0, len(individual) - 1):
             # Get distances for all previous points to the current point
@@ -478,7 +483,11 @@ class GeneticAlgorithm:
 
             # backtrack cost is distance between i and closest_index
             # backtrack_cost = np.abs(i - closest_index)
-            # Get the minimum distance
+            # Get the minimum disance
+
+            # if i == 10:
+            #     breakpoint()
+
             sum += (
                 100 * distances[closest_index] / len(individual)
                 + 40 * backtrack_cost / self.num_total_points
@@ -578,6 +587,7 @@ class GeneticAlgorithm:
 
         for i in range(length):
             self.num_total_points += self.points[i]["intermediate_points"].shape[0]
+
             for j in range(length):
                 self.distances[i][j], point_i_index, point_j_index = (
                     self.get_shortest_distance(

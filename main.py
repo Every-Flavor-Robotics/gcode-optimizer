@@ -5,6 +5,7 @@ import copy
 
 import graph_utils
 import networkx as nx
+import time
 
 
 def get_coords(line: str) -> np.ndarray:
@@ -114,13 +115,26 @@ def main(input_file, output_file):
     pre_g0, points = read_gcode(input_file)
     ga.init(points)
 
+    total_time = 0
+    loops = 0
+
     # Run the genetic algorithm
     while ga.unchanged_gens < 500:
+        start = time.time()
         ga.run_generation()
+        end = time.time()
+
+        # Total time in millis
+        total_time += (end - start) * 1000
+        loops += 1
+
+    print("Total time: ", total_time)
 
     print("Converged")
     # Write the output gcode
     best = ga.best
+    print(best)
+    breakpoint()
 
     print("Generating G-Code with backtracking...")
     g_code_output = []
@@ -164,6 +178,7 @@ def main(input_file, output_file):
                     best, block_index, block_index + 1
                 )
             )
+            breakpoint()
 
             # Next jump is in this group
             if closest_group_index == block_index:
