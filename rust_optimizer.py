@@ -81,7 +81,7 @@ def optimize_gcode(input_file: str, output_file: str):
     with open(input_file, "r") as file:
         for line in file:
             if "F" in line:
-                feedrate = int(line.split("F")[1].strip())
+                feedrate = float(line.split("F")[1].strip())
                 break
 
     # Run the command
