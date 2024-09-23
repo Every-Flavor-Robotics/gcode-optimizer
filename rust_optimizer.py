@@ -237,13 +237,13 @@ def optimize_gcode(input_file: str, output_file: str, origin: tuple[float, float
     "--origin_x",
     prompt="X coordinate of origin",
     help="X coordinate of origin",
-    default=0,
+    default=0.0,
 )
 @click.option(
     "--origin_y",
     prompt="Y coordinate of origin",
     help="Y coordinate of origin",
-    default=0,
+    default=0.0,
 )
 def main(input_file: str, output_file: str, origin_x: float, origin_y: float):
     optimize_gcode(input_file, output_file, (origin_x, origin_y))
