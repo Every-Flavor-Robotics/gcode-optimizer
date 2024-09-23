@@ -63,7 +63,7 @@ def decode_solution(data):
     return output
 
 
-def optimize_gcode(input_file: str, output_file: str):
+def optimize_gcode(input_file: str, output_file: str, origin: tuple[float, float]):
 
     PATH_TO_RUST_OPTIMIZER = "gcode-optimizer"
 
@@ -110,11 +110,11 @@ def optimize_gcode(input_file: str, output_file: str):
 
     # Convert pickled data to list of GCodeBlocks
     combined_graph = nx.Graph()
-    # Add (0,0) as the first point
-    combined_graph.add_node((0, 0))
+    # Add origin as the first point
+    combined_graph.add_node(origin)
     next_group_index = 0
     gcode_output_with_backtrack = []
-    last_node = (0, 0)
+    last_node = origin
     for block_index, block in enumerate(g_code_output):
         combined_graph = nx.compose(combined_graph, block["graph"])
 
@@ -173,15 +173,15 @@ def optimize_gcode(input_file: str, output_file: str):
 
             gcode_output_with_backtrack.append(block)
 
-            # Get shortest path to (0,0)
+            # Get shortest path to origin
             shortest_path = graph_utils.get_shortest_path(
-                combined_graph, block["end"], (0, 0)
+                combined_graph, block["end"], origin
             )
 
             # Add the backtrack commands
             backtrack_block = {
                 "final_path": shortest_path,
-                "end": (0, 0),
+                "end": origin,
                 "start": block["end"],
             }
 
@@ -232,8 +232,21 @@ def optimize_gcode(input_file: str, output_file: str):
     prompt="Path to output gcode file",
     help="Path to output gcode file",
 )
-def main(input_file: str, output_file: str):
-    optimize_gcode(input_file, output_file)
+# Origin arguments
+@click.option(
+    "--origin_x",
+    prompt="X coordinate of origin",
+    help="X coordinate of origin",
+    default=0,
+)
+@click.option(
+    "--origin_y",
+    prompt="Y coordinate of origin",
+    help="Y coordinate of origin",
+    default=0,
+)
+def main(input_file: str, output_file: str, origin_x: float, origin_y: float):
+    optimize_gcode(input_file, output_file, (origin_x, origin_y))
 
 
 if __name__ == "__main__":
